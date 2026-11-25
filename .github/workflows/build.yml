@@ -2,6 +2,8 @@ name: Build APK
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,7 +14,14 @@ jobs:
           distribution: temurin
           java-version: 17
       - run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
-      - uses: actions/upload-artifact@v4
+      - run: cp app/build/outputs/apk/release/*.apk Khammenha.apk
+      - uses: actions/upload-artifact@v5
         with:
           name: Khammenha-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: Khammenha.apk
+      - name: نشر ملف APK كإصدار
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest Khammenha.apk --title "خمّنها - آخر إصدار" --notes "حمّل Khammenha.apk وثبّته على هاتفك."
