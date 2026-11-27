@@ -38,8 +38,13 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;min-height:0;p
   padding:6px 16px;border-radius:999px;cursor:pointer}
 .modebar button.on{background:linear-gradient(90deg,var(--purple2),#ec4899);color:#fff;box-shadow:0 2px 6px rgba(109,40,217,.35)}
 #board-wrap{flex:1;display:flex;align-items:center;justify-content:center;width:100%;min-height:0}
-#board{display:grid;grid-template-rows:repeat(6,1fr);gap:7px;height:100%;max-height:420px;aspect-ratio:5/6}
-.row{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+#board{display:grid;gap:var(--gap,7px)}
+#board.l6 .tile,#board.l7 .tile{border-radius:9px}
+.lenbar{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.lenbar button{width:38px;height:34px;border-radius:11px;border:2px solid var(--tile-border);background:var(--card);color:var(--text);font:inherit;font-size:16px;font-weight:800;cursor:pointer}
+.lenbar button.on{background:var(--yellow);border-color:var(--yellow-d);color:#fff;box-shadow:0 3px 0 var(--yellow-d)}
+.row{display:grid;gap:var(--gap,7px)}
+#board .tile{width:var(--ts);height:var(--ts);font-size:calc(var(--ts)*.5)}
 .tile{border-radius:12px;background:var(--card);border:2.5px solid var(--tile-border);
   display:grid;place-items:center;font-size:clamp(22px,6.5vh,34px);font-weight:800;color:var(--text);
   box-shadow:0 3px 0 var(--tile-border);transition:transform .1s}
@@ -128,6 +133,7 @@ body.dark .answer{color:#c4b5fd}
     <button id="mDaily" class="on">📅 كلمة اليوم</button>
     <button id="mFree">🎲 لعب مفتوح</button>
   </div>
+  <div class="lenbar" id="lenbar"><span>عدد الحروف:</span></div>
   <div id="board-wrap"><div id="board"></div></div>
   <div id="kb"></div>
   <div class="actions">
@@ -146,7 +152,7 @@ body.dark .answer{color:#c4b5fd}
   <div class="legend"><div class="tile g">س</div><p>الأخضر: الحرف موجود وفي مكانه الصحيح.</p></div>
   <div class="legend"><div class="tile y">م</div><p>الأصفر: الحرف موجود لكن في مكان آخر.</p></div>
   <div class="legend"><div class="tile x">ة</div><p>الرمادي: الحرف غير موجود في الكلمة.</p></div>
-  <p style="text-align:center">خمّن الكلمة المكوّنة من 5 أحرف في 6 محاولات. كلمة جديدة كل يوم عند منتصف الليل.<br>
+  <p style="text-align:center">خمّن الكلمة المكوّنة من <b id=hL>5</b> أحرف في <b id=hT>6</b> محاولات. يمكنك اختيار طول الكلمة (3 إلى 7 أحرف) من الأعلى. كلمة جديدة كل يوم عند منتصف الليل.<br>
   عالق؟ 💡 يكشف حرفًا من الكلمة، و🎯 يكشف حرفًا في مكانه الصحيح.<br>
   <small>الهمزات (أ، إ، آ) تُكتب «ا».</small></p>
   <button class="btn go" data-close>متابعة</button>
@@ -173,13 +179,14 @@ body.dark .answer{color:#c4b5fd}
   <div class="setrow"><div>الوضع الصعب<small>يجب استخدام الحروف المكتشفة في المحاولات التالية</small></div><button class="sw" id="swHard"></button></div>
   <div class="setrow"><div>الاهتزاز<small>اهتزاز خفيف عند الخطأ</small></div><button class="sw" id="swVib"></button></div>
   <div class="setrow"><div>تصفير الإحصائيات</div><button class="key" style="flex:none;width:90px;height:40px;font-size:15px" id="bReset">تصفير</button></div>
-  <p style="text-align:center;font-size:13px">خمّنها — الإصدار 1.0</p>
+  <p style="text-align:center;font-size:13px">خمّنها — الإصدار 1.1</p>
 </div></div>
 
 <script>
-const WORDS = ["مدرسة", "مكتبة", "كتابة", "قراءة", "سيارة", "طائرة", "حديقة", "عصفور", "ممتاز", "جامعة", "معلمة", "طاولة", "نافذة", "ملعقة", "فنجان", "تفاحة", "فراشة", "غزالة", "دلفين", "تمساح", "زرافة", "بطريق", "نعامة", "حمامة", "دجاجة", "سنجاب", "ضفادع", "مدينة", "جزيرة", "صحراء", "بحيرة", "بركان", "زلزال", "عاصفة", "امطار", "سحابة", "شمسية", "قمرية", "صيفية", "كنيسة", "ميناء", "مزرعة", "مهندس", "محامي", "اغنية", "قصيدة", "رواية", "حكاية", "سينما", "رسالة", "جريدة", "ممحاة", "مسطرة", "حقيبة", "نظارة", "سروال", "جوارب", "زيتون", "طماطم", "بطاطا", "عائلة", "والدة", "جيران", "اطفال", "سعادة", "صداقة", "شجاعة", "كرامة", "عدالة", "معرفة", "ثقافة", "حضارة", "تاريخ", "رياضة", "سباحة", "بطولة", "جائزة", "جمهور", "حاسوب", "طابعة", "تطبيق", "رسائل", "حافلة", "دراجة", "سفينة", "صاروخ", "ارضية", "خزانة", "مصباح", "ستارة", "سجادة", "وسادة", "اسنان", "رمادي", "مفتاح", "ظهيرة", "اسبوع", "دقيقة", "ثانية", "ينبوع", "بنفسج", "ريحان", "نعناع", "حلزون", "ذبابة", "بعوضة", "صرصور", "جرادة", "يمامة", "ببغاء", "طاووس", "كناري", "مرجان", "مسافر", "تذكرة", "عمارة", "دينار", "تجارة", "بضاعة", "معركة", "هزيمة", "اميرة", "بوصلة", "خريطة", "صناعة", "زراعة", "طباعة", "خياطة", "نجارة", "حدادة", "سباكة", "ميزان", "مقياس", "مسافة", "رائحة", "سهولة", "صعوبة", "بساطة", "نظافة", "اناقة", "لطافة", "مهارة", "موهبة", "ضيافة", "كرماء", "جماعة", "منظمة", "جمعية", "مطرقة", "مسمار", "منشار", "كماشة", "سلسلة", "قانون", "دستور", "حكومة", "محكمة", "مكنسة", "ممسحة", "صابون", "منشفة", "فرشاة", "معجون", "فطيرة", "شوربة", "كسكسي", "عروسة", "بالون", "ورقية", "بستان", "تجربة", "نتيجة", "مشكلة", "طبيعة", "معادن", "منارة", "اسوار", "اعصار", "فيضان", "حرارة", "برودة", "رطوبة", "فانوس", "كواكب", "ملحمة", "بقالة", "ملاهي", "امانة", "اخلاص", "تعاون", "تسامح", "تواضع", "اشجار", "ازهار", "اقلام", "شوارع", "جوهرة", "لؤلؤة", "ربابة", "مزمار", "بيانو", "جيتار", "ثلاثة", "اربعة", "كمثرى", "جوافة", "مانجو", "مخترع", "تلميذ", "استاذ"];
+const WORDS_BY_LEN = {"3": ["سوق", "قصة", "قلم", "عقد", "خبز", "عسل", "سكر", "ملح", "بصل", "ثوم", "جزر", "عنب", "شاي", "ماء", "لبن", "اخت", "جدة", "عمة", "غضب", "خوف", "امل", "حلم", "صبر", "قوة", "كرة", "هدف", "كاس", "حكم", "بيت", "قصر", "برج", "جسر", "نفق", "سكة", "باب", "سقف", "سلم", "اذن", "انف", "قدم", "راس", "قلب", "كبد", "رئة", "شعر", "لغة", "حرف", "صوت", "صمت", "قفل", "نار", "ثلج", "مطر", "برق", "رعد", "قوس", "شهر", "سنة", "قرن", "كهف", "نهر", "بئر", "عين", "اسد", "نمر", "فهد", "ذئب", "قرد", "فيل", "جمل", "صقر", "نسر", "حوت", "قرش", "سفر", "بنك", "حرب", "جيش", "نصر", "ملك", "وطن", "علم", "وزن", "حجم", "شكل", "لون", "طعم", "دقة", "مقص", "مشط", "قمح", "ذرة", "ارز", "عدس", "فول", "حمص", "ذهب", "فضة", "فحم", "نفط", "غاز", "حصن", "درع", "رمح", "صدق", "كتب", "عود", "بحر", "جبل", "شمس", "قمر", "نجم", "ورد", "زهر", "لحم", "تمر", "موز", "تين", "رمل", "برد", "ريح", "طير", "ظهر", "بطن", "رجل", "كتف", "وجه", "نور", "ليل", "يوم", "عام", "صيف", "درب", "طفل", "ولد", "بنت", "جار", "ضيف", "خير", "كرز", "توت", "جوز", "لوز", "زيت", "جبن", "بيض", "رطب", "فجر", "عصر", "غيم", "كوخ", "سور", "حقل", "غار", "سهل", "نبع", "موج", "حجر", "صخر", "طين", "ورق", "حبر", "لوح", "سيف", "سهم", "صحن", "قدر", "فرن", "ثوب", "كيس", "رسم", "لعب", "درس", "عمل", "نوم", "اكل", "شرب", "مهد", "غزل", "جسم", "فكر", "عقل", "روح", "نفس", "ساق", "رمش", "ذقن", "كوب", "شيخ", "فوز", "وقت", "شعب", "ارض", "سحر", "عطر", "مسك", "زمن", "خال", "اهل", "عرس", "عيد"], "4": ["كوكب", "نجمة", "مطبخ", "حمام", "غرفة", "شارع", "قرية", "غابة", "شلال", "وادي", "سهول", "هضبة", "ضباب", "رياح", "ربيع", "خريف", "شتاء", "مسجد", "متجر", "مطعم", "مقهى", "فندق", "مطار", "محطة", "مصنع", "طبيب", "معلم", "طالب", "فلاح", "نجار", "حداد", "خباز", "جندي", "شرطي", "سائق", "رسام", "كاتب", "شاعر", "صورة", "لوحة", "مجلة", "كتاب", "دفتر", "ساعة", "قميص", "حذاء", "معطف", "قبعة", "خاتم", "سوار", "حليب", "جبنة", "فلفل", "خيار", "بطيخ", "رمان", "مشمش", "خوخة", "كرزة", "موزة", "تمرة", "زبدة", "قهوة", "عصير", "اسرة", "والد", "اخوة", "خالة", "صديق", "ضيوف", "رجال", "نساء", "فرحة", "حزين", "محبة", "حرية", "رحمة", "سرعة", "جمال", "ذكاء", "حكمة", "علوم", "ملعب", "لاعب", "فريق", "مدرب", "هاتف", "شاشة", "فارة", "شبكة", "صفحة", "موقع", "منزل", "خيمة", "طريق", "قطار", "قارب", "جدار", "مصعد", "كرسي", "سرير", "مراة", "عيون", "يدين", "معدة", "عظام", "دماء", "لسان", "ضحكة", "دمعة", "نظرة", "كلمة", "جملة", "ضجيج", "هدوء", "سكون", "احمر", "اخضر", "ازرق", "اصفر", "اسود", "ابيض", "وردي", "ذهبي", "شمعة", "دخان", "رماد", "جليد", "صباح", "مساء", "ليلة", "نهار", "لحظة", "شاطئ", "رمال", "صخرة", "جبال", "تلال", "واحة", "نخلة", "شجرة", "زهرة", "وردة", "نرجس", "زنبق", "زعتر", "قرفة", "كمون", "ثعلب", "حصان", "بقرة", "خروف", "ماعز", "ارنب", "قنفذ", "نحلة", "نملة", "بلبل", "غراب", "بومة", "سمكة", "محار", "رحلة", "جواز", "وصول", "عودة", "مكتب", "شركة", "نقود", "عملة", "درهم", "ريال", "ثروة", "سلام", "قائد", "ملكة", "امير", "وزير", "رئيس", "دولة", "قارة", "محيط", "بحار", "خليج", "مضيق", "ملمس", "جميل", "طويل", "قصير", "كبير", "صغير", "سريع", "بطيء", "ضعيف", "فقير", "شجاع", "كريم", "بخيل", "قدرة", "نادي", "مركز", "معهد", "حبال", "خيوط", "ابرة", "نظام", "قاضي", "سجين", "عطور", "وجبة", "فطور", "غداء", "عشاء", "حلوى", "كعكة", "مربى", "سلطة", "لعبة", "دمية", "حقول", "شعير", "سؤال", "جواب", "فكرة", "حلول", "بيئة", "هواء", "تراب", "نحاس", "حديد", "قلعة", "خندق", "مدفع", "سيوف", "غيمة", "نسمة", "جفاف", "هلال", "نجوم", "مجرة", "فضاء", "مخبز", "متحف", "معرض", "وفاء", "بيوت", "زمرد", "ماسة", "كنوز", "طبلة", "كمان", "خمسة", "سبعة", "تسعة", "عشرة", "حكيم", "عالم", "باحث", "فنان", "مصور", "ممثل", "مغني", "راقص", "مدير", "عميد", "وكيل", "حارس", "بواب"], "5": ["مدرسة", "مكتبة", "كتابة", "قراءة", "سيارة", "طائرة", "حديقة", "عصفور", "ممتاز", "جامعة", "معلمة", "طاولة", "نافذة", "ملعقة", "فنجان", "تفاحة", "فراشة", "غزالة", "دلفين", "تمساح", "زرافة", "بطريق", "نعامة", "حمامة", "دجاجة", "سنجاب", "ضفادع", "مدينة", "جزيرة", "صحراء", "بحيرة", "بركان", "زلزال", "عاصفة", "امطار", "سحابة", "شمسية", "قمرية", "صيفية", "كنيسة", "ميناء", "مزرعة", "مهندس", "محامي", "اغنية", "قصيدة", "رواية", "حكاية", "سينما", "رسالة", "جريدة", "ممحاة", "مسطرة", "حقيبة", "نظارة", "سروال", "جوارب", "زيتون", "طماطم", "بطاطا", "عائلة", "والدة", "جيران", "اطفال", "سعادة", "صداقة", "شجاعة", "كرامة", "عدالة", "معرفة", "ثقافة", "حضارة", "تاريخ", "رياضة", "سباحة", "بطولة", "جائزة", "جمهور", "حاسوب", "طابعة", "تطبيق", "رسائل", "حافلة", "دراجة", "سفينة", "صاروخ", "ارضية", "خزانة", "مصباح", "ستارة", "سجادة", "وسادة", "اسنان", "رمادي", "مفتاح", "ظهيرة", "اسبوع", "دقيقة", "ثانية", "ينبوع", "بنفسج", "ريحان", "نعناع", "حلزون", "ذبابة", "بعوضة", "صرصور", "جرادة", "يمامة", "ببغاء", "طاووس", "كناري", "مرجان", "مسافر", "تذكرة", "عمارة", "دينار", "تجارة", "بضاعة", "معركة", "هزيمة", "اميرة", "بوصلة", "خريطة", "صناعة", "زراعة", "طباعة", "خياطة", "نجارة", "حدادة", "سباكة", "ميزان", "مقياس", "مسافة", "رائحة", "سهولة", "صعوبة", "بساطة", "نظافة", "اناقة", "لطافة", "مهارة", "موهبة", "ضيافة", "كرماء", "جماعة", "منظمة", "جمعية", "مطرقة", "مسمار", "منشار", "كماشة", "سلسلة", "قانون", "دستور", "حكومة", "محكمة", "مكنسة", "ممسحة", "صابون", "منشفة", "فرشاة", "معجون", "فطيرة", "شوربة", "كسكسي", "عروسة", "بالون", "ورقية", "بستان", "تجربة", "نتيجة", "مشكلة", "طبيعة", "معادن", "منارة", "اسوار", "اعصار", "فيضان", "حرارة", "برودة", "رطوبة", "فانوس", "كواكب", "ملحمة", "بقالة", "ملاهي", "امانة", "اخلاص", "تعاون", "تسامح", "تواضع", "اشجار", "ازهار", "اقلام", "شوارع", "جوهرة", "لؤلؤة", "ربابة", "مزمار", "بيانو", "جيتار", "ثلاثة", "اربعة", "كمثرى", "جوافة", "مانجو", "مخترع", "تلميذ", "استاذ", "انتاج", "تجارب", "مختبر", "شاشات", "هواتف", "ساعات", "خواتم", "اساور", "قلائد", "مزارع", "حصادة"], "6": ["ثعابين", "مستشفى", "صيدلية", "موسيقى", "مسرحية", "ليمونة", "فراولة", "مباراة", "برنامج", "بنفسجي", "ياسمين", "زنجبيل", "يانسون", "سلحفاة", "عنكبوت", "اخطبوط", "سلطعون", "مغادرة", "نافورة", "اصدقاء", "مجموعة", "برلمان", "انتخاب", "بسكويت", "شوكولا", "ارجوحة", "مغامرة", "اكتشاف", "اختراع", "شمعدان", "احترام", "عصافير", "ياقوتة", "ثمانية", "اناناس", "برتقال", "مسابقة", "مستودع", "مستطيل", "مثلثات", "مكعبات", "كاميرا", "بطانية", "بنطلون", "قفازات", "سيارات", "طائرات", "قطارات", "مستشار", "صيادون", "فراشات", "تماسيح", "طواويس", "دلافين", "اجتهاد", "انتصار", "اهتمام", "امتحان", "اختبار", "انتباه", "اقتصاد", "ذكريات", "مستقبل", "شيخوخة", "جامعات", "محيطات", "محافظة", "معجنات", "مشويات", "حلويات", "مقرونة", "شكشوكة", "ملوخية", "بقلاوة", "مكسرات", "شاورما", "همبرغر", "استماع", "اجتماع", "مستكشف", "مستخدم", "مكتبات", "تلسكوب", "انترنت", "بقدونس", "قرنبيط", "بازلاء", "استاذة", "مهندسة", "مترجمة", "محاسبة", "مبرمجة", "فيزياء", "كيمياء", "موسوعة", "مجلدات", "روايات", "حكايات", "رسومات", "تماثيل", "مهرجان", "احتفال", "ثلاثاء", "اربعاء", "فبراير", "سبتمبر", "اكتوبر", "نوفمبر", "ديسمبر", "جويلية", "معلمون", "لاعبون", "مدربون", "فلاحون", "طيارون", "قراصنة", "بطولات", "تمارين", "مخططات", "منارات", "شلالات", "براكين", "اعاصير", "بحيرات", "مذنبات", "صواريخ", "مركبات", "سماعات", "شاحنات", "دراجات", "حافلات", "مطارات", "اشارات", "طاولات", "مصابيح", "سجادات", "سكاكين", "فناجين", "ابتكار", "حواسيب", "كتابات", "قصاصات", "مفاتيح", "نظارات", "بستاني", "جرارات"], "7": ["برتقالة", "جغرافيا", "ميدالية", "ابتسامة", "معكرونة", "اسطوانة", "تلفزيون", "ديناصور", "استقلال", "استقرار", "معلومات", "مسؤولية", "استراحة", "استعداد", "استكشاف", "استخدام", "انطلاقة", "مغناطيس", "برمجيات", "باذنجان", "فاصوليا", "مستشارة", "كهربائي", "رياضيات", "مسرحيات", "مسلسلات", "منحوتات", "مسافرون", "مهندسون", "محاربون", "مسابقات", "مباريات", "تدريبات", "كمبيوتر", "بطاريات", "موسيقار", "مختبرات", "تطبيقات", "مجوهرات", "مزارعون"]};
 
-const LEN=5, TRIES=6;
+let LEN=5, TRIES=6, WORDS=[], ORDER=[];
+const LENS=[3,4,5,6,7];
 const NORM={"أ":"ا","إ":"ا","آ":"ا"};
 const norm=s=>[...s].map(c=>NORM[c]||c).join("");
 const KEYS=[["ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج"],
@@ -192,23 +199,40 @@ const store={get(k,d){try{const v=localStorage.getItem("khm_"+k);return v?JSON.p
              set(k,v){try{localStorage.setItem("khm_"+k,JSON.stringify(v))}catch(e){}}};
 const settings=Object.assign({dark:false,hard:false,vib:true},store.get("settings",{}));
 const blankStats=()=>({played:0,wins:0,streak:0,best:0,dist:[0,0,0,0,0,0]});
-let stats={daily:Object.assign(blankStats(),store.get("stats_daily",{})),free:Object.assign(blankStats(),store.get("stats_free",{}))};
+let stats={};
+// المفتاح القديم (5 أحرف) يبقى كما هو للحفاظ على تقدّم اللاعب
+const sfx=()=>LEN===5?"":"_"+LEN;
+function loadStats(){stats={};["daily","free"].forEach(m=>{const s=Object.assign(blankStats(),store.get("stats_"+m+sfx(),{}));
+  while(s.dist.length<TRIES)s.dist.push(0);s.dist=s.dist.slice(0,TRIES);stats[m]=s})}
 
 // ---------- daily word ----------
 function dayIndex(d=new Date()){const e=new Date(2026,0,1);return Math.floor((new Date(d.getFullYear(),d.getMonth(),d.getDate())-e)/864e5)}
 function seededOrder(n,seed){const a=[...Array(n).keys()];let s=seed;for(let i=n-1;i>0;i--){s=(s*1103515245+12345)%2147483648;const j=s%(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
-const ORDER=seededOrder(WORDS.length,20260101);
+
 const dailyWord=()=>WORDS[ORDER[((dayIndex()%WORDS.length)+WORDS.length)%WORDS.length]];
 
 // ---------- game state ----------
 let mode=store.get("mode","daily"), G=null, busy=false;
-function newGame(word){return{word,guesses:[],cur:"",done:false,won:false,hints:2,eyes:1,revealed:[],known:{},day:dayIndex()}}
+function setLen(n){LEN=n;TRIES=n+1;WORDS=WORDS_BY_LEN[n];ORDER=seededOrder(WORDS.length,20260101+(n===5?0:n*7919));
+  settings.len=n;store.set("settings",settings);loadStats();
+  $("board").className="l"+n;fitBoard();
+  $("hL").textContent=LEN;$("hT").textContent=TRIES;
+  document.querySelectorAll("#lenbar button").forEach(b=>b.classList.toggle("on",+b.dataset.n===n))}
+function fitBoard(){const w=$("board-wrap"),b=$("board");const gap=LEN>=6?5:7;
+  const W=w.clientWidth-8,H=w.clientHeight-4;
+  const ts=Math.max(24,Math.floor(Math.min((W-gap*(LEN-1))/LEN,(H-gap*(TRIES-1))/TRIES,72)));
+  b.style.setProperty("--ts",ts+"px");b.style.setProperty("--gap",gap+"px");
+  b.style.gridTemplateRows=`repeat(${TRIES},${ts}px)`;
+  [...b.children].forEach(r=>r.style.gridTemplateColumns=`repeat(${LEN},${ts}px)`)}
+const fitObs=new ResizeObserver(()=>fitBoard());
+const maxHints=()=>LEN<=3?1:LEN>=6?3:2, maxEyes=()=>LEN>=6?2:1;
+function newGame(word){return{word,guesses:[],cur:"",done:false,won:false,hints:maxHints(),eyes:maxEyes(),revealed:[],known:{},day:dayIndex()}}
 function loadGame(){
-  if(mode==="daily"){let g=store.get("game_daily",null);if(!g||g.day!==dayIndex()||g.word!==dailyWord())g=newGame(dailyWord());G=g}
-  else{let g=store.get("game_free",null);if(!g||g.done)g=newGame(WORDS[Math.floor(Math.random()*WORDS.length)]);G=g}
+  if(mode==="daily"){let g=store.get("game_daily"+sfx(),null);if(!g||g.day!==dayIndex()||g.word!==dailyWord())g=newGame(dailyWord());G=g}
+  else{let g=store.get("game_free"+sfx(),null);if(!g||g.done)g=newGame(WORDS[Math.floor(Math.random()*WORDS.length)]);G=g}
   G.cur=G.cur||"";G.known=G.known||{};save();
 }
-const save=()=>store.set("game_"+mode,G);
+const save=()=>store.set("game_"+mode+sfx(),G);
 
 function score(guess,word){
   const res=Array(LEN).fill("x"),w=[...word],g=[...guess],cnt={};
@@ -222,7 +246,7 @@ function keyStates(){const k=Object.assign({},G.known);
 
 // ---------- render ----------
 function buildBoard(){const b=$("board");b.innerHTML="";for(let r=0;r<TRIES;r++){const row=document.createElement("div");row.className="row";
-  for(let c=0;c<LEN;c++){const t=document.createElement("div");t.className="tile";row.appendChild(t)}b.appendChild(row)}}
+  for(let c=0;c<LEN;c++){const t=document.createElement("div");t.className="tile";row.appendChild(t)}b.appendChild(row)}fitBoard()}
 function render(){
   const rows=$("board").children;
   for(let r=0;r<TRIES;r++){const tiles=rows[r].children;let txt="",res=null;
@@ -271,7 +295,7 @@ const PRAISE=["عبقري! 🤯","مذهل! 🌟","رائع! 🎉","ممتاز! 
 function finish(){
   const s=stats[mode];s.played++;
   if(G.won){s.wins++;s.streak++;s.best=Math.max(s.best,s.streak);s.dist[G.guesses.length-1]++}else s.streak=0;
-  store.set("stats_"+mode,s);
+  store.set("stats_"+mode+sfx(),s);
   if(G.won){[...$("board").children[G.guesses.length-1].children].forEach((t,i)=>setTimeout(()=>t.classList.add("win"),i*90));
     toast(PRAISE[G.guesses.length-1]);confetti();setTimeout(()=>openStats(true),1600)}
   else{toast("الكلمة كانت: "+G.word,2500);setTimeout(()=>openStats(true),1800)}
@@ -297,7 +321,7 @@ let timer=null;
 function openStats(end){
   const s=stats[mode];$("stPlayed").textContent=s.played;$("stWin").textContent=s.played?Math.round(100*s.wins/s.played):0;
   $("stStreak").textContent=s.streak;$("stBest").textContent=s.best;
-  $("sTitle").textContent=G.done?(G.won?`🎉 أحسنت! خمّنتها في ${G.guesses.length}/6`:"😔 حظ أوفر المرة القادمة"):(mode==="daily"?"إحصائيات كلمة اليوم":"إحصائيات اللعب المفتوح");
+  $("sTitle").textContent=G.done?(G.won?`🎉 أحسنت! خمّنتها في ${G.guesses.length}/${TRIES}`:"😔 حظ أوفر المرة القادمة"):(mode==="daily"?"إحصائيات كلمة اليوم":"إحصائيات اللعب المفتوح");
   $("sResult").innerHTML=G.done?`<p>الكلمة كانت: <span class="answer">${G.word}</span></p>`:"";
   const max=Math.max(1,...s.dist);
   $("dist").innerHTML=s.dist.map((n,i)=>`<div class="dr"><span>${i+1}</span><div class="bar${G.done&&G.won&&G.guesses.length===i+1?" hl":""}" style="width:${Math.max(8,n/max*90)}%">${n}</div></div>`).join("");
@@ -316,8 +340,8 @@ function openStats(end){
 function share(){
   const em={g:"🟩",y:"🟨",x:"⬜"};
   const grid=G.guesses.map(gs=>score(gs,G.word).reverse().map(r=>em[r]).join("")).join("\n");
-  const head=mode==="daily"?`خمّنها #${dayIndex()+1}`:"خمّنها 🎲";
-  const text=`${head} ${G.won?G.guesses.length:"X"}/6\n\n${grid}`;
+  const head=(mode==="daily"?`خمّنها #${dayIndex()+1}`:"خمّنها 🎲")+` (${LEN} أحرف)`;
+  const text=`${head} ${G.won?G.guesses.length:"X"}/${TRIES}\n\n${grid}`;
   if(window.Android&&Android.share){Android.share(text);return}
   if(navigator.share){navigator.share({text}).catch(()=>{});return}
   try{navigator.clipboard.writeText(text);toast("تم نسخ النتيجة ✔")}catch(e){toast("تعذّرت المشاركة")}
@@ -331,7 +355,7 @@ $("swHard").onclick=()=>{if(G.guesses.length&&!G.done&&!settings.hard){toast("ف
 $("swVib").onclick=()=>{settings.vib=!settings.vib;applySettings()};
 let resetArm=0;
 $("bReset").onclick=()=>{if(Date.now()-resetArm>3000){resetArm=Date.now();$("bReset").textContent="تأكيد؟";toast("اضغط مرة أخرى للتأكيد");setTimeout(()=>$("bReset").textContent="تصفير",3000);return}
-  resetArm=0;$("bReset").textContent="تصفير";stats={daily:blankStats(),free:blankStats()};store.set("stats_daily",stats.daily);store.set("stats_free",stats.free);toast("تم التصفير")};
+  resetArm=0;$("bReset").textContent="تصفير";LENS.forEach(n=>{const x=n===5?"":"_"+n;store.set("stats_daily"+x,{});store.set("stats_free"+x,{})});loadStats();toast("تم التصفير")};
 
 // ---------- confetti ----------
 function confetti(){const cv=$("confetti"),ctx=cv.getContext("2d");cv.width=innerWidth;cv.height=innerHeight;
@@ -351,7 +375,9 @@ document.addEventListener("keydown",e=>{if(document.querySelector(".overlay.open
 // Android back button hook
 window.onBack=()=>{if(document.querySelector(".overlay.open")){closeAll();return true}return false};
 
-applySettings();buildKb();loadGame();buildBoard();render();
+LENS.forEach(n=>{const b=document.createElement("button");b.textContent=n;b.dataset.n=n;
+  b.onclick=()=>{if(busy||n===LEN)return;closeAll();setLen(n);loadGame();buildBoard();render();if(G.done)setTimeout(()=>openStats(false),300)};$("lenbar").appendChild(b)});
+fitObs.observe($("board-wrap"));applySettings();buildKb();setLen(LENS.includes(settings.len)?settings.len:5);loadGame();buildBoard();render();
 if(!store.get("seenHelp",false)){store.set("seenHelp",true);open("oHelp")}
 else if(G.done)setTimeout(()=>openStats(false),300);
 </script>
